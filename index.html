@@ -3,444 +3,1020 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Intelligent Log Analyzer</title>
+  <meta name="description" content="Advanced log file analyzer with threat detection and categorization">
+  <title>Intelligent Log Analyzer | By Anubhav Mohandas</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
   <style>
     :root {
-      --bg:#0b1220;
-      --bg2:#0f1b31;
-      --card:rgba(255,255,255,.06);
-      --text:#e8eefc;
-      --muted:#a8b3cf;
-      --accent:#67e8f9;
-      --line:rgba(255,255,255,.18);
+      --bg: #0b1220;
+      --bg2: #0f1b31;
+      --card: rgba(255,255,255,.06);
+      --text: #e8eefc;
+      --muted: #a8b3cf;
+      --accent: #67e8f9;
+      --line: rgba(255,255,255,.18);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
     }
-    html,body{
-      margin:0;padding:0;
-      background:linear-gradient(135deg,var(--bg),#0b1630 55%,var(--bg));
-      color:var(--text);
-      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, var(--bg), #0b1630 55%, var(--bg));
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+      min-height: 100vh;
     }
-    .container{max-width:1200px;margin:0 auto;padding:24px}
-    .center{text-align:center}
-    .header-title{
-      font-weight:800;font-size:36px;margin:8px 0;
-      background:linear-gradient(90deg,#5cc8ff,#67e8f9);
-      -webkit-background-clip:text;background-clip:text;color:transparent
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .center { text-align: center; }
+    .header-title {
+      font-weight: 800;
+      font-size: 36px;
+      margin: 8px 0;
+      background: linear-gradient(90deg, #5cc8ff, #67e8f9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
-    .subtle{color:var(--muted)}
-    .card{background:var(--card);backdrop-filter: blur(8px);border:1px solid var(--line);border-radius:14px;padding:18px}
-    .grid{display:grid;gap:16px}
-    .grid-3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
-    .grid-4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
-    .btn{
-      display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;
-      border:1px solid #2c7c3f;background:rgba(56,189,98,.15);color:#b7f7c4;cursor:pointer
+    .subtle { color: var(--muted); font-size: 14px; }
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
     }
-    .btn:hover{background:rgba(56,189,98,.22)}
-    .btn-ghost{border:1px dashed var(--line);background:rgba(255,255,255,.08);cursor:pointer}
-    .btn-ghost:hover{border-color:var(--accent);background:rgba(103,232,249,.12)}
-    .filebox{
-      display:flex;align-items:center;justify-content:center;height:180px;
-      border:2px dashed var(--line);border-radius:14px
+    .grid { display: grid; gap: 16px; }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
     }
-    .filebox:hover{border-color:var(--accent);background:rgba(255,255,255,.04)}
-    .muted{font-size:12px;color:var(--muted)}
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .stat{border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.05)}
-    .stat .num{font-weight:800;font-size:26px}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
-    select{background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);padding:8px 10px;border-radius:8px}
-    .result{border:2px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.05)}
-    .result.alert{border-color:rgba(249,115,22,.5)}
-    .tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-    .tag{font-size:12px;font-weight:700;border-radius:999px;padding:6px 10px;color:#fff}
-    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;color:#cbd5e1;background:rgba(0,0,0,.35);padding:10px;border-radius:8px;overflow:auto}
-    .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
-    .kv .item{background:rgba(255,255,255,.06);border-radius:8px;padding:8px}
-    .kv .k{font-size:11px;color:#94a3b8;text-transform:capitalize}
-    .kv .v{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .badge{font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid}
-    .b-critical{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
-    .b-high{background:#ffedd5;color:#9a3412;border-color:#fdba74}
-    .b-medium{background:#fef3c7;color:#92400e;border-color:#fde68a}
-    .b-low{background:#dcfce7;color:#166534;border-color:#86efac}
+    .btn-primary {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.15);
+      color: #93c5fd;
+    }
+    .btn-primary:hover {
+      background: rgba(37, 99, 235, 0.25);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      border: 1px dashed var(--line);
+      background: rgba(255,255,255,.05);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      background: rgba(103, 232, 249, 0.12);
+    }
+    .filebox {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      border: 2px dashed var(--line);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      padding: 20px;
+    }
+    .filebox:hover, .filebox.drag-over {
+      border-color: var(--accent);
+      background: rgba(255,255,255,.04);
+    }
+    .muted { font-size: 12px; color: var(--muted); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      background: rgba(255,255,255,.05);
+      text-align: center;
+    }
+    .stat .num {
+      font-weight: 800;
+      font-size: 32px;
+      margin-bottom: 4px;
+    }
+    .stat.critical { border-color: rgba(239, 68, 68, 0.5); }
+    .stat.critical .num { color: #ef4444; }
+    .stat.high { border-color: rgba(249, 115, 22, 0.5); }
+    .stat.high .num { color: #f97316; }
+    .stat.medium { border-color: rgba(234, 179, 8, 0.5); }
+    .stat.medium .num { color: #eab308; }
+    .stat.low { border-color: rgba(34, 197, 94, 0.5); }
+    .stat.low .num { color: #22c55e; }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    select, input[type="text"] {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    select:focus, input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 4px 12px;
+    }
+    .search-box:focus-within {
+      border-color: var(--accent);
+    }
+    .search-box input {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      flex: 1;
+      min-width: 200px;
+    }
+    .search-box input:focus {
+      outline: none;
+    }
+    .result {
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      background: rgba(255,255,255,.05);
+      transition: all 0.2s;
+    }
+    .result:hover {
+      background: rgba(255,255,255,.08);
+      transform: translateY(-2px);
+    }
+    .result.alert { border-color: rgba(249, 115, 22, 0.5); }
+    .tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: #fff;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #cbd5e1;
+      background: rgba(0,0,0,.4);
+      padding: 12px;
+      border-radius: 8px;
+      overflow-x: auto;
+      line-height: 1.5;
+      margin: 10px 0;
+    }
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .kv .item {
+      background: rgba(255,255,255,.06);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .kv .k {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: capitalize;
+      margin-bottom: 4px;
+    }
+    .kv .v {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--accent);
+    }
+    .badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .b-critical { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .b-high { background: #ffedd5; color: #9a3412; border-color: #fdba74; }
+    .b-medium { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .b-low { background: #dcfce7; color: #166534; border-color: #86efac; }
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .category-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      transition: all 0.2s;
+    }
+    .category-card:hover {
+      transform: translateY(-2px);
+    }
+    .icon-large { font-size: 24px; margin-bottom: 6px; }
+    .count-large {
+      font-size: 24px;
+      font-weight: 800;
+    }
+    @media (max-width: 768px) {
+      .header-title { font-size: 28px; }
+      .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .row { flex-direction: column; align-items: stretch; }
+      .search-box input { min-width: 150px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <div class="center">
-      <div style="font-size:48px">🛡️</div>
+      <div style="font-size:52px; margin-bottom: 8px;">🛡️</div>
       <div class="header-title">Intelligent Log Analyzer</div>
-      <div class="subtle">Upload any log file and get automatic categorization and threat analysis</div>
+      <div class="subtle" style="margin-bottom: 4px;">
+        Detect threats faster. Analyze smarter. Stay secure.
+      </div>
+      <div class="subtle" style="font-weight: 600; color: var(--accent);">
+        Developed by Anubhav Mohandas | Cybersecurity Portfolio Project
+      </div>
     </div>
 
-    <!-- Upload -->
-    <div class="card" style="margin-top:18px">
-      <div class="row" style="margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:18px">📤 Upload Log File</div>
+    <!-- Upload Section -->
+    <div class="card" style="margin-top: 24px;">
+      <div class="row" style="margin-bottom: 16px;">
+        <div style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:18px;">
+          📤 Upload Log File
+        </div>
       </div>
-      <label id="dropArea" class="filebox btn-ghost" for="fileInput" aria-label="Upload log file (click or drag and drop)">
+      
+      <label id="dropArea" class="filebox btn-ghost" for="fileInput" aria-label="Upload log file">
         <div class="center">
-          <div style="font-size:40px">📄</div>
-          <div><b>Click to upload</b> or drag and drop</div>
-          <div class="muted" id="selectedName">Any log file (TXT, LOG, CSV)</div>
+          <div style="font-size:48px; margin-bottom: 8px;">📄</div>
+          <div style="font-weight: 600; margin-bottom: 4px;">Click to upload or drag and drop</div>
+          <div class="muted" id="selectedName">Supports TXT, LOG, CSV files</div>
         </div>
       </label>
       <input id="fileInput" type="file" accept=".txt,.log,.csv" style="display:none" />
 
-      <!-- Samples -->
-      <div style="margin-top:16px">
-        <div class="muted" style="margin-bottom:6px">Or try a sample log file:</div>
+      <!-- Sample Buttons -->
+      <div style="margin-top: 20px;">
+        <div class="muted" style="margin-bottom: 10px; font-weight: 600;">📋 Or try a sample log file:</div>
         <div class="grid grid-3">
-          <button class="card btn-ghost" data-sample="netscreen" aria-label="Load Netscreen firewall sample">
-            <div style="display:flex;align-items:center;gap:8px;color: whitesmoke;">
-              <span style="font-size:22px">🛡️</span><span style="font-weight:700">Netscreen Firewall</span>
+          <button class="card btn-ghost" data-sample="netscreen">
+            <div style="display:flex; align-items:center; gap:10px; color: #e8eefc; margin-bottom: 6px;">
+              <span style="font-size:24px;">🛡️</span>
+              <span style="font-weight:700; font-size: 15px;">Firewall Logs</span>
             </div>
-            <div class="muted">Samples inspired by OSSEC docs</div>
+            <div class="muted">NetScreen with port scans & DDoS</div>
           </button>
 
-          <button class="card btn-ghost" data-sample="cisco_ios" aria-label="Load Cisco IOS sample">
-            <div style="display:flex;align-items:center;gap:8px;color: whitesmoke">
-              <span style="font-size:22px">🌐</span><span style="font-weight:700">Cisco IOS Logs</span>
+          <button class="card btn-ghost" data-sample="cisco_ios">
+            <div style="display:flex; align-items:center; gap:10px; color: #e8eefc; margin-bottom: 6px;">
+              <span style="font-size:24px;">🌐</span>
+              <span style="font-weight:700; font-size: 15px;">Switch Logs</span>
             </div>
-            <div class="muted">show logging output &amp; syslog</div>
+            <div class="muted">Cisco IOS with brute force attempts</div>
           </button>
 
-          <button class="card btn-ghost" data-sample="ibm_zos" aria-label="Load IBM z/OS sample">
-            <div style="display:flex;align-items:center;gap:8px;color: whitesmoke">
-              <span style="font-size:22px">💻</span><span style="font-weight:700">IBM z/OS Logs</span>
+          <button class="card btn-ghost" data-sample="ibm_zos">
+            <div style="display:flex; align-items:center; gap:10px; color: #e8eefc; margin-bottom: 6px;">
+              <span style="font-size:24px;">💻</span>
+              <span style="font-weight:700; font-size: 15px;">System Logs</span>
             </div>
-            <div class="muted">OPERLOG / SYSLOG examples</div>
+            <div class="muted">IBM z/OS with resource alerts</div>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Results -->
-    <div id="resultsWrap" style="display:none;margin-top:16px">
-      <div class="card" style="margin-bottom:12px">
+    <!-- Results Section -->
+    <div id="resultsWrap" style="display:none;">
+      <!-- File Info -->
+      <div class="card">
         <div class="row">
           <div>
             <div class="muted">Analyzing File</div>
-            <div id="fileName" style="font-weight:700"></div>
+            <div id="fileName" style="font-weight:700; font-size: 16px; color: var(--accent);"></div>
           </div>
           <div class="center">
-            <div class="header-title" id="totalEntries" style="font-size:28px"></div>
+            <div class="header-title" id="totalEntries" style="font-size:32px; margin: 0;"></div>
             <div class="subtle">Total Entries</div>
           </div>
         </div>
       </div>
 
+      <!-- Stats Dashboard -->
       <div class="stats">
-        <div class="stat"><div class="num" id="statCritical">0</div><div class="muted">Critical</div></div>
-        <div class="stat"><div class="num" id="statHigh">0</div><div class="muted">High Risk</div></div>
-        <div class="stat"><div class="num" id="statMedium">0</div><div class="muted">Medium Risk</div></div>
-        <div class="stat"><div class="num" id="statAlerts">0</div><div class="muted">Alerts</div></div>
-      </div>
-
-      <div class="card" style="margin-top:14px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">📈 <b>Event Categories</b></div>
-        <div id="categoryGrid" class="grid grid-4"></div>
-      </div>
-
-      <div class="card" style="margin-top:14px">
-        <div class="row">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span>🔎</span>
-            <label class="muted">Filter by Category:</label>
-            <select id="filterSelect" aria-label="Filter results by category"></select>
-          </div>
-          <button id="exportBtn" class="btn" aria-label="Export results as CSV">⬇️ Export CSV</button>
+        <div class="stat critical">
+          <div class="num" id="statCritical">0</div>
+          <div class="muted">Critical</div>
+        </div>
+        <div class="stat high">
+          <div class="num" id="statHigh">0</div>
+          <div class="muted">High Risk</div>
+        </div>
+        <div class="stat medium">
+          <div class="num" id="statMedium">0</div>
+          <div class="muted">Medium Risk</div>
+        </div>
+        <div class="stat low">
+          <div class="num" id="statAlerts">0</div>
+          <div class="muted">Total Alerts</div>
         </div>
       </div>
 
-      <div id="resultsList" style="margin-top:14px" class="grid"></div>
+      <!-- Event Categories -->
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-weight: 600;">
+          📊 Event Categories
+        </div>
+        <div id="categoryGrid" class="grid grid-4"></div>
+      </div>
+
+      <!-- Filters & Search -->
+      <div class="card">
+        <div class="filter-controls">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size: 20px;">🔍</span>
+            <label class="muted" style="font-weight: 600;">Filter:</label>
+            <select id="filterSelect" aria-label="Filter by category"></select>
+          </div>
+          
+          <div class="search-box">
+            <span style="font-size: 16px;">🔎</span>
+            <input type="text" id="searchInput" placeholder="Search logs..." aria-label="Search logs">
+          </div>
+          
+          <button id="exportBtn" class="btn btn-primary" aria-label="Export results">
+            ⬇️ Export CSV
+          </button>
+        </div>
+        <div id="filterInfo" class="muted" style="margin-top: 10px;"></div>
+      </div>
+
+      <!-- Results List -->
+      <div id="resultsList" class="grid"></div>
     </div>
   </div>
 
 <script>
-/* -------------------- Analysis Logic -------------------- */
-const state = { uploadedFile:null, analysis:null, filterCategory:'all' };
-
-const eventCategories = {
-  'Login Attempts': { patterns:[/login|logon|authentication|signin|sign-in|auth/i,/failed.*password|invalid.*credentials|auth.*fail/i,/successful.*login|logged in|authentication.*success/i,/ssh|telnet|rdp|ftp.*login/i], icon:'🔐', color:'#3b82f6' },
-  'Network Changes': { patterns:[/interface.*up|interface.*down|link.*up|link.*down/i,/route.*add|route.*del|routing.*change/i,/vlan.*config|port.*config|switch.*config/i,/network.*change|topology.*change/i], icon:'🌐', color:'#06b6d4' },
-  'Firewall Actions': { patterns:[/deny|drop|block|reject|discard/i,/permit|allow|accept|pass/i,/firewall.*rule|acl|access.*list/i,/src=|dst=|proto=/i], icon:'🛡️', color:'#8b5cf6' },
-  'Configuration Changes': { patterns:[/config.*change|configuration|configured from/i,/policy.*change|rule.*change|setting.*change/i,/admin|administrator|root|sudo/i,/modify|update|edit.*config/i], icon:'⚙️', color:'#eab308' },
-  'System Events': { patterns:[/start|started|stop|stopped|restart|reboot/i,/service.*up|service.*down|daemon/i,/system.*error|kernel|crash|panic/i,/job.*start|job.*end|process/i], icon:'💻', color:'#22c55e' },
-  'Security Alerts': { patterns:[/attack|intrusion|breach|exploit|vulnerability/i,/malware|virus|trojan|backdoor|ransomware/i,/suspicious|anomaly|unusual|unauthorized/i,/scan|probe|flood|ddos/i], icon:'🚨', color:'#ef4444' },
-  'Access Control': { patterns:[/permission|privilege|access.*denied|forbidden/i,/unauthorized|unauthenticated/i,/role.*change|group.*add|user.*add/i,/sudo|su|privilege.*escalation/i], icon:'🔒', color:'#f97316' },
-  'Data Transfer': { patterns:[/transfer|upload|download|file.*transfer/i,/bytes.*sent|bytes.*received|traffic/i,/ftp|sftp|scp|http.*post/i,/data.*sent|data.*received/i], icon:'📡', color:'#6366f1' },
-  'Error Events': { patterns:[/error|fail|failure|fatal|critical/i,/exception|abort|abend|crash/i,/timeout|unreachable|unavailable/i,/corrupt|invalid|malformed/i], icon:'❌', color:'#ef4444' },
-  'Warning Events': { patterns:[/warn|warning|caution|alert/i,/threshold.*exceed|limit.*reach/i,/deprecat|obsolete/i,/retry|attempt/i], icon:'⚠️', color:'#eab308' },
-  'Port Activity': { patterns:[/port.*\d+|destination.*port|source.*port/i,/22|23|80|443|3389|445|3306|1433|5432/,/ssh.*port|rdp.*port|http.*port/i,/port.*scan|port.*probe/i], icon:'🔌', color:'#14b8a6' },
-  'Session Management': { patterns:[/session.*start|session.*end|session.*expire/i,/connection.*establish|connection.*close/i,/timeout|idle|disconnect/i,/keepalive|heartbeat/i], icon:'🔗', color:'#ec4899' }
+/* ============================================
+   STATE MANAGEMENT
+============================================ */
+const state = {
+  uploadedFile: null,
+  analysis: null,
+  filterCategory: 'all',
+  searchQuery: ''
 };
 
-function categorizeLogEntry(line){
-  const categories=[];
+/* ============================================
+   EVENT CATEGORIES & PATTERNS
+============================================ */
+const eventCategories = {
+  'Login Attempts': {
+    patterns: [
+      /login|logon|authentication|signin|sign-in|auth/i,
+      /failed.*password|invalid.*credentials|auth.*fail/i,
+      /successful.*login|logged in|authentication.*success/i,
+      /ssh|telnet|rdp|ftp.*login/i
+    ],
+    icon: '🔐',
+    color: '#3b82f6'
+  },
+  'Network Changes': {
+    patterns: [
+      /interface.*up|interface.*down|link.*up|link.*down/i,
+      /route.*add|route.*del|routing.*change/i,
+      /vlan.*config|port.*config|switch.*config/i,
+      /network.*change|topology.*change/i
+    ],
+    icon: '🌐',
+    color: '#06b6d4'
+  },
+  'Firewall Actions': {
+    patterns: [
+      /deny|drop|block|reject|discard/i,
+      /permit|allow|accept|pass/i,
+      /firewall.*rule|acl|access.*list/i,
+      /src=|dst=|proto=/i
+    ],
+    icon: '🛡️',
+    color: '#8b5cf6'
+  },
+  'Configuration Changes': {
+    patterns: [
+      /config.*change|configuration|configured from/i,
+      /policy.*change|rule.*change|setting.*change/i,
+      /admin|administrator|root|sudo/i,
+      /modify|update|edit.*config/i
+    ],
+    icon: '⚙️',
+    color: '#eab308'
+  },
+  'System Events': {
+    patterns: [
+      /start|started|stop|stopped|restart|reboot/i,
+      /service.*up|service.*down|daemon/i,
+      /system.*error|kernel|crash|panic/i,
+      /job.*start|job.*end|process/i
+    ],
+    icon: '💻',
+    color: '#22c55e'
+  },
+  'Security Alerts': {
+    patterns: [
+      /attack|intrusion|breach|exploit|vulnerability/i,
+      /malware|virus|trojan|backdoor|ransomware/i,
+      /suspicious|anomaly|unusual|unauthorized/i,
+      /scan|probe|flood|ddos/i
+    ],
+    icon: '🚨',
+    color: '#ef4444'
+  },
+  'Access Control': {
+    patterns: [
+      /permission|privilege|access.*denied|forbidden/i,
+      /unauthorized|unauthenticated/i,
+      /role.*change|group.*add|user.*add/i,
+      /sudo|su|privilege.*escalation/i
+    ],
+    icon: '🔒',
+    color: '#f97316'
+  },
+  'Data Transfer': {
+    patterns: [
+      /transfer|upload|download|file.*transfer/i,
+      /bytes.*sent|bytes.*received|traffic/i,
+      /ftp|sftp|scp|http.*post/i,
+      /data.*sent|data.*received/i
+    ],
+    icon: '📡',
+    color: '#6366f1'
+  },
+  'Port Activity': {
+    patterns: [
+      /port.*\d+|destination.*port|source.*port/i,
+      /22|23|80|443|3389|445|3306|1433|5432/,
+      /ssh.*port|rdp.*port|http.*port/i,
+      /port.*scan|port.*probe/i
+    ],
+    icon: '🔌',
+    color: '#14b8a6'
+  },
+  'Session Management': {
+    patterns: [
+      /session.*start|session.*end|session.*expire/i,
+      /connection.*establish|connection.*close/i,
+      /timeout|idle|disconnect/i,
+      /keepalive|heartbeat/i
+    ],
+    icon: '🔗',
+    color: '#ec4899'
+  },
+  'Error Events': {
+    patterns: [
+      /error|fail|failure|fatal/i,
+      /exception|abort|crash/i,
+      /timeout|unreachable/i,
+      /corrupt|invalid/i
+    ],
+    icon: '❌',
+    color: '#ef4444'
+  },
+  'Warning Events': {
+    patterns: [
+      /warn|warning|caution/i,
+      /threshold|limit/i,
+      /deprecat|obsolete/i
+    ],
+    icon: '⚠️',
+    color: '#f59e0b'
+  }
+};
+
+/* ============================================
+   ANALYSIS FUNCTIONS
+============================================ */
+function categorizeLogEntry(line) {
+  const categories = [];
   for (const [name, cfg] of Object.entries(eventCategories)) {
-    if (cfg.patterns.some(p => p.test(line))) categories.push(name);
+    if (cfg.patterns.some(p => p.test(line))) {
+      categories.push(name);
+    }
   }
   return categories.length ? categories : ['Uncategorized'];
 }
 
-function extractParameters(line){
-  const params={};
-  const tsPatterns=[
-    /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/,
+function extractParameters(line) {
+  const params = {};
+  
+  // Timestamp patterns
+  const tsPatterns = [
+    /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?)/,
     /([A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})/,
     /(\d{2}:\d{2}:\d{2})/,
     /(\d{2}\.\d{2}\.\d{2})/
   ];
+  
   for (const pat of tsPatterns) {
-    const m=line.match(pat);
-    if (m && !params.timestamp) params.timestamp=m[1];
+    const m = line.match(pat);
+    if (m && !params.timestamp) {
+      params.timestamp = m[1];
+      break;
+    }
   }
-  const ipPattern=/(?:src|source|from|client)[=:\s]+(\d{1,3}(?:\.\d{1,3}){3})|(\d{1,3}(?:\.\d{1,3}){3})(?=\s|:)/gi;
-  const ips=[...line.matchAll(ipPattern)];
+  
+  // IP addresses
+  const ipPattern = /(?:src|source|from|client)[=:\s]+(\d{1,3}(?:\.\d{1,3}){3})|(?:^|\s)(\d{1,3}(?:\.\d{1,3}){3})(?=\s|:|,)/gi;
+  const ips = [...line.matchAll(ipPattern)];
   if (ips.length) params.sourceIP = ips[0][1] || ips[0][2];
-
-  const dstMatch=line.match(/(?:dst|destination|to|server)[=:\s]+(\d{1,3}(?:\.\d{1,3}){3})/i);
+  
+  const dstMatch = line.match(/(?:dst|destination|to|server)[=:\s]+(\d{1,3}(?:\.\d{1,3}){3})/i);
   if (dstMatch) params.destinationIP = dstMatch[1];
-
-  const portMatch=[...line.matchAll(/(?:port|sport|dport)[=:\s]+(\d+)/gi)];
+  
+  // Port
+  const portMatch = [...line.matchAll(/(?:port|sport|dport)[=:\s]+(\d+)/gi)];
   if (portMatch.length) params.port = portMatch[0][1];
-
-  const protoMatch=line.match(/(?:proto|protocol)[=:\s]+(\w+)/i);
+  
+  // Protocol
+  const protoMatch = line.match(/(?:proto|protocol)[=:\s]+(\w+)/i);
   if (protoMatch) params.protocol = protoMatch[1];
-
-  const actionMatch=line.match(/(deny|permit|allow|block|drop|accept|reject|fail|success|start|stop)/i);
+  
+  // Action
+  const actionMatch = line.match(/(deny|permit|allow|block|drop|accept|reject|fail|success|start|stop|error)/i);
   if (actionMatch) params.action = actionMatch[1];
-
-  const userMatch=line.match(/(?:user|username|account)[=:\s]+(\S+)/i);
+  
+  // User
+  const userMatch = line.match(/(?:user|username|account)[=:\s"']+([^"'\s,]+)/i);
   if (userMatch) params.user = userMatch[1];
-
-  const ifMatch=line.match(/(?:interface|int)[:\s]+(\S+)/i);
+  
+  // Interface
+  const ifMatch = line.match(/(?:interface|int)[:\s]+([^\s,]+)/i);
   if (ifMatch) params.interface = ifMatch[1];
-
-  const sevMatch=line.match(/(?:severity|level|priority)[=:\s]+(\w+)|%[A-Z]+-(\d)-/i);
-  if (sevMatch) params.severity = sevMatch[1] || sevMatch[2];
-
+  
   return params;
 }
 
-function assessThreatLevel(categories,line){
-  const highRisk = ['Security Alerts','Access Control','Error Events'];
-  const medRisk  = ['Login Attempts','Firewall Actions','Port Activity'];
+function assessThreatLevel(categories, line) {
+  const highRisk = ['Security Alerts', 'Access Control', 'Error Events'];
+  const medRisk = ['Login Attempts', 'Firewall Actions', 'Port Activity'];
+  
   const hasHigh = categories.some(c => highRisk.includes(c));
-  const hasMed  = categories.some(c => medRisk.includes(c));
-
-  if (/fail|deny|reject|block|error|unauthorized/i.test(line)) return hasHigh ? 'critical' : 'high';
+  const hasMed = categories.some(c => medRisk.includes(c));
+  
+  if (/fail|deny|reject|block|error|unauthorized|critical|attack|breach/i.test(line)) {
+    return hasHigh ? 'critical' : 'high';
+  }
   if (hasHigh) return 'high';
-  if (hasMed)  return 'medium';
+  if (hasMed) return 'medium';
   return 'low';
 }
 
-function analyzeLogFile(text, fileName){
+function analyzeLogFile(text, fileName) {
   const lines = text.split(/\r?\n/).filter(l => l && l.trim());
-  const results=[], categoryStats={};
-  lines.forEach((line,i)=>{
+  const results = [];
+  const categoryStats = {};
+  
+  lines.forEach((line, i) => {
     const categories = categorizeLogEntry(line);
     const parameters = extractParameters(line);
     const threatLevel = assessThreatLevel(categories, line);
-    categories.forEach(c => categoryStats[c] = (categoryStats[c]||0)+1);
+    
+    categories.forEach(c => {
+      categoryStats[c] = (categoryStats[c] || 0) + 1;
+    });
+    
     results.push({
-      lineNumber:i+1,
-      originalLog:line,
-      categories, parameters, threatLevel,
-      isAlert: (threatLevel==='critical'||threatLevel==='high')
+      lineNumber: i + 1,
+      originalLog: line,
+      categories,
+      parameters,
+      threatLevel,
+      isAlert: (threatLevel === 'critical' || threatLevel === 'high')
     });
   });
-
+  
   const stats = {
     total: results.length,
     alerts: results.filter(r => r.isAlert).length,
-    critical: results.filter(r => r.threatLevel==='critical').length,
-    high: results.filter(r => r.threatLevel==='high').length,
-    medium: results.filter(r => r.threatLevel==='medium').length,
+    critical: results.filter(r => r.threatLevel === 'critical').length,
+    high: results.filter(r => r.threatLevel === 'high').length,
+    medium: results.filter(r => r.threatLevel === 'medium').length,
+    low: results.filter(r => r.threatLevel === 'low').length,
     categoryBreakdown: categoryStats,
     fileName
   };
-
+  
   state.analysis = { results, stats };
   render();
 }
 
-function colorForCategory(cat){ const cfg=eventCategories[cat]; return cfg ? cfg.color : '#64748b'; }
-function badgeClass(level){
-  return level==='critical' ? 'badge b-critical'
-       : level==='high'    ? 'badge b-high'
-       : level==='medium'  ? 'badge b-medium'
+/* ============================================
+   RENDERING FUNCTIONS
+============================================ */
+function colorForCategory(cat) {
+  const cfg = eventCategories[cat];
+  return cfg ? cfg.color : '#64748b';
+}
+
+function badgeClass(level) {
+  return level === 'critical' ? 'badge b-critical'
+       : level === 'high' ? 'badge b-high'
+       : level === 'medium' ? 'badge b-medium'
        : 'badge b-low';
 }
 
-function render(){
-  const wrap=document.getElementById('resultsWrap');
-  if(!state.analysis){ wrap.style.display='none'; return; }
-  wrap.style.display='block';
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-  const {stats, results} = state.analysis;
+function render() {
+  const wrap = document.getElementById('resultsWrap');
+  
+  if (!state.analysis) {
+    wrap.style.display = 'none';
+    return;
+  }
+  
+  wrap.style.display = 'block';
+  
+  const { stats, results } = state.analysis;
+  
+  // Update stats
   document.getElementById('fileName').textContent = stats.fileName || 'Untitled';
   document.getElementById('totalEntries').textContent = stats.total;
   document.getElementById('statCritical').textContent = stats.critical;
   document.getElementById('statHigh').textContent = stats.high;
   document.getElementById('statMedium').textContent = stats.medium;
   document.getElementById('statAlerts').textContent = stats.alerts;
-
-  // Category cards (dynamic)
+  
+  // Render category cards
   const catGrid = document.getElementById('categoryGrid');
   catGrid.innerHTML = '';
   Object.entries(stats.categoryBreakdown)
-    .sort(([,a],[,b]) => b - a)
-    .forEach(([category, count])=>{
-      const cfg = eventCategories[category] || {icon:'📋'};
+    .sort(([, a], [, b]) => b - a)
+    .forEach(([category, count]) => {
+      const cfg = eventCategories[category] || { icon: '📋' };
       const div = document.createElement('div');
-      div.className='card';
+      div.className = 'card category-card';
       div.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-          <span style="font-size:20px">${cfg.icon}</span>
-          <span style="font-size:13px;font-weight:600">${category}</span>
-        </div>
-        <div style="font-size:22px;color:${colorForCategory(category)}">${count}</div>`;
+        <div class="icon-large">${cfg.icon}</div>
+        <div style="font-size:12px; font-weight:600; margin-bottom:4px; text-align:center;">${category}</div>
+        <div class="count-large" style="color:${colorForCategory(category)}">${count}</div>
+      `;
       catGrid.appendChild(div);
     });
-
-  // Filter (dynamic from detected categories)
+  
+  // Update filter dropdown
   const sel = document.getElementById('filterSelect');
   sel.innerHTML = '';
   sel.add(new Option(`All Events (${results.length})`, 'all'));
-  if (stats.alerts > 0) sel.add(new Option(`⚠️ Alerts Only (${stats.alerts})`, 'alerts'));
-  Object.keys(stats.categoryBreakdown).forEach(cat=>{
-    sel.add(new Option(`${(eventCategories[cat]||{}).icon||'📋'} ${cat} (${stats.categoryBreakdown[cat]})`, cat));
-  });
+  if (stats.alerts > 0) {
+    sel.add(new Option(`⚠️ Alerts Only (${stats.alerts})`, 'alerts'));
+  }
+  Object.keys(stats.categoryBreakdown)
+    .sort((a, b) => stats.categoryBreakdown[b] - stats.categoryBreakdown[a])
+    .forEach(cat => {
+      const cfg = eventCategories[cat] || { icon: '📋' };
+      sel.add(new Option(`${cfg.icon} ${cat} (${stats.categoryBreakdown[cat]})`, cat));
+    });
   sel.value = state.filterCategory;
+  
+  // Render filtered results
+  renderResults();
+}
 
-  // Results list
+function renderResults() {
+  const { results } = state.analysis;
   const list = document.getElementById('resultsList');
   list.innerHTML = '';
-  const filtered = results.filter(r =>
-    state.filterCategory === 'all' ? true
-    : state.filterCategory === 'alerts' ? r.isAlert
-    : r.categories.includes(state.filterCategory)
-  );
-
-  filtered.forEach(r=>{
-    const card=document.createElement('div');
-    card.className='result' + (r.isAlert ? ' alert' : '');
-    const chips = `<span class="muted">Line ${r.lineNumber}</span>
-                   <span class="${badgeClass(r.threatLevel)}">${r.threatLevel.toUpperCase()}</span>`;
-    const cats = r.categories.map(c =>
-      `<span class="tag" style="background:${colorForCategory(c)}">${(eventCategories[c]||{}).icon||'📋'} ${c}</span>`
-    ).join('');
-    const kv = Object.entries(r.parameters).map(([k,v]) =>
-      `<div class="item"><div class="k">${k}</div><div class="v">${v}</div></div>`
-    ).join('');
+  
+  // Apply filters
+  let filtered = results.filter(r => {
+    // Category filter
+    let matchesCategory = true;
+    if (state.filterCategory === 'alerts') {
+      matchesCategory = r.isAlert;
+    } else if (state.filterCategory !== 'all') {
+      matchesCategory = r.categories.includes(state.filterCategory);
+    }
+    
+    // Search filter
+    let matchesSearch = true;
+    if (state.searchQuery) {
+      const query = state.searchQuery.toLowerCase();
+      matchesSearch = r.originalLog.toLowerCase().includes(query) ||
+                      Object.values(r.parameters).some(v => 
+                        String(v).toLowerCase().includes(query)
+                      );
+    }
+    
+    return matchesCategory && matchesSearch;
+  });
+  
+  // Update filter info
+  const filterInfo = document.getElementById('filterInfo');
+  filterInfo.textContent = `Showing ${filtered.length} of ${results.length} events`;
+  
+  // Render each result
+  filtered.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'result' + (r.isAlert ? ' alert' : '');
+    
+    const chips = `
+      <span class="muted">Line ${r.lineNumber}</span>
+      <span class="${badgeClass(r.threatLevel)}">${r.threatLevel}</span>
+    `;
+    
+    const cats = r.categories.map(c => {
+      const cfg = eventCategories[c] || { icon: '📋' };
+      return `<span class="tag" style="background:${colorForCategory(c)}">${cfg.icon} ${c}</span>`;
+    }).join('');
+    
+    const kvEntries = Object.entries(r.parameters);
+    const kv = kvEntries.length ? kvEntries.map(([k, v]) => `
+      <div class="item">
+        <div class="k">${escapeHtml(k)}</div>
+        <div class="v">${escapeHtml(v)}</div>
+      </div>
+    `).join('') : '';
+    
     card.innerHTML = `
-      <div class="row" style="margin-bottom:8px">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${chips}</div>
-        ${r.isAlert ? '<div style="font-size:20px;color:#fb923c">⚠️</div>' : ''}
+      <div class="row" style="margin-bottom:10px;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          ${chips}
+          ${r.parameters.timestamp ? `<span class="muted">⏰ ${escapeHtml(r.parameters.timestamp)}</span>` : ''}
+        </div>
+        ${r.isAlert ? '<div style="font-size:24px; color:#fb923c;">⚠️</div>' : ''}
       </div>
       <div class="tags">${cats}</div>
       <div class="mono">${escapeHtml(r.originalLog)}</div>
-      ${kv ? `<div class="kv" style="margin-top:8px">${kv}</div>` : ''}`;
+      ${kv ? `<div class="kv">${kv}</div>` : ''}
+    `;
+    
     list.appendChild(card);
   });
+  
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div class="card center" style="padding: 40px;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🔍</div>
+        <div style="font-size: 18px; font-weight: 600; margin-bottom: 6px;">No results found</div>
+        <div class="muted">Try adjusting your filters or search query</div>
+      </div>
+    `;
+  }
 }
 
-function escapeHtml(s){
-  return String(s)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
-
-function exportCsv(){
-  if(!state.analysis) return;
-  const filtered = state.analysis.results.filter(r =>
-    state.filterCategory === 'all' ? true
-    : state.filterCategory === 'alerts' ? r.isAlert
-    : r.categories.includes(state.filterCategory)
-  );
+/* ============================================
+   EXPORT FUNCTION
+============================================ */
+function exportCsv() {
+  if (!state.analysis) return;
+  
+  const { results } = state.analysis;
+  
+  // Apply same filters as display
+  let filtered = results.filter(r => {
+    let matchesCategory = true;
+    if (state.filterCategory === 'alerts') {
+      matchesCategory = r.isAlert;
+    } else if (state.filterCategory !== 'all') {
+      matchesCategory = r.categories.includes(state.filterCategory);
+    }
+    
+    let matchesSearch = true;
+    if (state.searchQuery) {
+      const query = state.searchQuery.toLowerCase();
+      matchesSearch = r.originalLog.toLowerCase().includes(query) ||
+                      Object.values(r.parameters).some(v => 
+                        String(v).toLowerCase().includes(query)
+                      );
+    }
+    
+    return matchesCategory && matchesSearch;
+  });
+  
   const rows = [
-    ["Line","Threat Level","Categories","Parameters","Original Log"],
+    ['Line', 'Threat Level', 'Categories', 'Parameters', 'Original Log'],
     ...filtered.map(r => [
       r.lineNumber,
       r.threatLevel,
-      r.categories.join(';'),
-      Object.entries(r.parameters).map(([k,v])=>`${k}:${v}`).join(';'),
-      r.originalLog.replace(/"/g,'""')
+      r.categories.join('; '),
+      Object.entries(r.parameters).map(([k, v]) => `${k}: ${v}`).join('; '),
+      r.originalLog.replace(/"/g, '""')
     ])
   ];
-  const csv = rows.map(row => row.map(c => `"${String(c)}"`).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url  = URL.createObjectURL(blob);
+  
+  const csv = rows.map(row => 
+    row.map(c => `"${String(c)}"`).join(',')
+  ).join('\n');
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `log_analysis_${Date.now()}.csv`; a.click();
+  a.href = url;
+  a.download = `log_analysis_${Date.now()}.csv`;
+  a.click();
   URL.revokeObjectURL(url);
 }
 
-/* -------------------- Sample Data -------------------- */
+/* ============================================
+   SAMPLE DATA
+============================================ */
 const samples = {
-  netscreen: `Jun  1 22:02:12 ns5gt: NetScreen device_id=ns5gt [Root]system-notification-00002: Admin user "baby" logged in for Web(http) management (port 8080) from 1.2.3.4:2150
-Jun  1 22:05:44 ns5gt: NetScreen device_id=ns5gt: Traffic denied: src=203.0.113.10/43521 dst=10.0.0.5/22 proto=tcp
-Jun  1 22:06:03 ns5gt: NetScreen device_id=ns5gt: Alert message: suspicious port scan detected from 203.0.113.10 to 10.0.0.0/24
-Jun  1 22:07:10 ns5gt: NetScreen device_id=ns5gt: Critical: CPU utilization high (95%)`,
-  cisco_ios: `Router# show logging
-Syslog logging: enabled (0 messages dropped, 0 overruns)
-%LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to up
-%SYS-5-CONFIG_I: Configured from console by admin on vty0 (10.0.0.10)
-%SPANTREE-5-TOPO_CHG: Topology Change detected on VLAN1`,
-  ibm_zos: `OPERLOG 2021-01-26T03:33:18.065Z JOB12345 STARTED - CLASS=A USER=IBMUSER
-OPERLOG 2021-01-26T03:33:25.410Z JOB12345 ENDED - RC=0000
-SYSLOG  09:10:00 IEF403I BACKUP  STARTED - TIME=09.10.00
-SYSLOG  09:12:14 IEC070I 209-220, IFG0554A, VOL=SYS001, DEV=3390, UNIT=SYSDA
-SSH     09:14:54 Failed password for invalid user test from 203.0.113.10 port 54321 ssh2`
+  netscreen: `Jun  1 22:01:35 [xx] ns5gt: NetScreen device_id=ns5gt [Root]system-alert-00016: Port scan! From 203.0.113.45:54886 to 192.168.1.100:406, proto TCP (zone Untrust, int untrust). Occurred 1 times.
+Jun  1 22:01:57 [xx] ns5gt: NetScreen device_id=ns5gt [Root]system-alert-00016: Port scan! From 203.0.113.45:55181 to 192.168.1.100:1358, proto TCP (zone Untrust, int untrust). Occurred 1 times.
+Jun  2 11:24:16 fire00 sav00: NetScreen device_id=sav00 [Root]system-critical-00436: Large ICMP packet! From 203.0.113.45 to 192.168.1.100, proto 1 (zone Untrust, int ethernet1/2). Occurred 1 times.
+Jun  1 22:02:12 [xx] ns5gt: NetScreen device_id=ns5gt [Root]system-notification-00002: Admin user "admin" logged in for Web(http) management (port 8080) from 10.0.0.50:2150
+Jun  2 14:55:46 fire00 fire00: NetScreen device_id=fire00 [Root]system-notification-00257(traffic): start_time="2006-06-02 14:55:45" duration=0 policy_id=119 service=udp/port:7001 proto=17 src zone=Trust dst zone=Untrust action=Deny sent=0 rcvd=0 src=192.168.2.1 dst=203.0.113.50 src_port=3036 dst_port=7001
+Jun  2 14:56:10 fire00 fire00: Critical alert: Suspected DDoS attack detected from 203.0.113.45`,
+
+  cisco_ios: `Mar 26 09:36:43: %LINK-5-CHANGED: Interface Fastethernet0/0, changed state to administratively down
+Mar 26 09:40:21: %LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet0/1, changed state to up
+Mar 26 09:42:15: %SYS-5-CONFIG_I: Configured from console by admin
+Mar 26 10:15:33: %SEC_LOGIN-5-LOGIN_SUCCESS: Login Success [user: admin] [Source: 10.1.1.50] at 10:15:33 UTC
+Mar 26 10:20:45: %SEC_LOGIN-4-LOGIN_FAILED: Login failed [user: root] [Source: 198.51.100.75] [localport: 22] at 10:20:45 UTC
+Mar 26 10:21:10: %SEC_LOGIN-4-LOGIN_FAILED: Login failed [user: root] [Source: 198.51.100.75] [localport: 22] at 10:21:10 UTC
+Mar 26 10:21:35: %SEC_LOGIN-4-LOGIN_FAILED: Login failed [user: admin] [Source: 198.51.100.75] [localport: 22] at 10:21:35 UTC
+Mar 26 10:25:00: %SPANTREE-5-TOPO_CHG: Topology Change detected on VLAN1
+Mar 26 11:30:15: %SYS-2-MALLOCFAIL: Memory allocation of 65536 bytes failed from 0x12345678`,
+
+  ibm_zos: `2024-11-09 10:23:45 INFO: System boot completed
+2024-11-09 10:25:12 WARNING: High CPU usage detected - 95%
+2024-11-09 10:30:22 ERROR: Failed authentication attempt for user 'administrator' from 198.51.100.100
+2024-11-09 10:31:05 ERROR: Failed authentication attempt for user 'admin' from 198.51.100.100
+2024-11-09 10:31:48 ERROR: Failed authentication attempt for user 'root' from 198.51.100.100
+2024-11-09 10:35:10 INFO: Service 'apache2' started successfully
+2024-11-09 10:40:33 CRITICAL: Disk space critical - 98% used on /var partition
+2024-11-09 10:45:22 WARNING: Unusual outbound traffic detected - 500MB in 5 minutes to 203.0.113.200
+2024-11-09 10:50:00 ERROR: Database connection timeout - unable to reach server at 10.0.0.50:3306
+OPERLOG 2024-11-09T11:00:00.000Z JOB12345 STARTED - CLASS=A USER=IBMUSER
+OPERLOG 2024-11-09T11:05:30.500Z JOB12345 ENDED - RC=0000`
 };
 
-/* -------------------- Wiring -------------------- */
+/* ============================================
+   EVENT HANDLERS
+============================================ */
 const fileInput = document.getElementById('fileInput');
-fileInput.addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if(!f) return;
+const dropArea = document.getElementById('dropArea');
+const searchInput = document.getElementById('searchInput');
+const filterSelect = document.getElementById('filterSelect');
+const exportBtn = document.getElementById('exportBtn');
+
+// File input change
+fileInput.addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  
   document.getElementById('selectedName').textContent = `Selected: ${f.name}`;
-  const text = await f.text();
-  state.uploadedFile = f;
-  analyzeLogFile(text, f.name);
+  
+  try {
+    const text = await f.text();
+    state.uploadedFile = f;
+    analyzeLogFile(text, f.name);
+  } catch (error) {
+    alert('Error reading file: ' + error.message);
+  }
 });
 
-// Drag & drop (optional)
-const dropArea = document.getElementById('dropArea');
-['dragenter','dragover'].forEach(ev =>
-  dropArea.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); dropArea.classList.add('drag'); })
-);
-['dragleave','drop'].forEach(ev =>
-  dropArea.addEventListener(ev, (e)=>{ e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('drag'); })
-);
-dropArea.addEventListener('drop', async (e)=>{
-  const f = e.dataTransfer?.files?.[0]; if(!f) return;
+// Drag and drop
+['dragenter', 'dragover'].forEach(ev => {
+  dropArea.addEventListener(ev, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropArea.classList.add('drag-over');
+  });
+});
+
+['dragleave', 'drop'].forEach(ev => {
+  dropArea.addEventListener(ev, (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropArea.classList.remove('drag-over');
+  });
+});
+
+dropArea.addEventListener('drop', async (e) => {
+  const f = e.dataTransfer?.files?.[0];
+  if (!f) return;
+  
   document.getElementById('selectedName').textContent = `Selected: ${f.name}`;
-  const text = await f.text();
-  state.uploadedFile = f;
-  analyzeLogFile(text, f.name);
+  
+  try {
+    const text = await f.text();
+    state.uploadedFile = f;
+    analyzeLogFile(text, f.name);
+  } catch (error) {
+    alert('Error reading file: ' + error.message);
+  }
 });
 
 // Sample buttons
-document.querySelectorAll('[data-sample]').forEach(btn =>
-  btn.addEventListener('click', ()=>{
+document.querySelectorAll('[data-sample]').forEach(btn => {
+  btn.addEventListener('click', () => {
     const key = btn.getAttribute('data-sample');
     const content = samples[key];
     if (!content) return;
     analyzeLogFile(content, `${key}_sample.log`);
-  })
-);
-
-// Filter + Export
-document.getElementById('filterSelect').addEventListener('change', (e)=>{
-  state.filterCategory = e.target.value;
-  render();
+  });
 });
-document.getElementById('exportBtn').addEventListener('click', exportCsv);
+
+// Filter dropdown
+filterSelect.addEventListener('change', (e) => {
+  state.filterCategory = e.target.value;
+  renderResults();
+});
+
+// Search input
+let searchTimeout;
+searchInput.addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    state.searchQuery = e.target.value.trim();
+    renderResults();
+  }, 300); // Debounce for 300ms
+});
+
+// Export button
+exportBtn.addEventListener('click', exportCsv);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  // Ctrl/Cmd + K to focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+  }
+  
+  // Escape to clear search
+  if (e.key === 'Escape' && document.activeElement === searchInput) {
+    searchInput.value = '';
+    state.searchQuery = '';
+    renderResults();
+  }
+});
+
+console.log('🛡️ Intelligent Log Analyzer loaded successfully!');
+console.log('📝 Developed by Anubhav Mohandas');
 </script>
 </body>
 </html>
